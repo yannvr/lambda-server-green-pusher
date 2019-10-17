@@ -1,0 +1,8 @@
+{
+    "name": "ca-mongodb-api",
+    "version": 2,
+    "alias": "CA-mongodb-api",
+    "env": {
+        "MONGODB_URI": "@ca-mongodb-api"
+    }
+}
