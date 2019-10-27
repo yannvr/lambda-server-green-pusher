@@ -3,7 +3,7 @@ const { connectToDatabase } = require('../mongo/db.js')
 module.exports = async (req, res) => {
     try {
         const db = await connectToDatabase(process.env.MONGODB_URI)
-        const collectionToken = await db.collection('expotoken')
+        const collectionToken = db.collection('expotoken')
         const {  userExpoToken, deviceName } = req.body
         console.log('userExpoToken', userExpoToken);
         console.log('deviceName', deviceName);

@@ -62,6 +62,9 @@ const pushQuoteNotifications = async (
       to: pushToken,
       sound: "default",
       body: quote,
+      data: {
+        quote
+      }
       // body: '"Ghost has been a truly game-changing product for me. Unlike many other publishing platforms, Ghost supports all components of running a successful online publication, from technical SEO to a surprisingly clean editing interface."',
     })
   }
