@@ -1,6 +1,3 @@
-const { Expo } = require('expo-server-sdk')
-const axios = require('axios')
-
 const { connectToDatabase } = require('../mongo/db.js')
 
 module.exports = async (req, res) => {
