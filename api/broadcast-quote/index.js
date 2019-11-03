@@ -33,7 +33,7 @@ const pushQuoteNotifications = async (
     ]
   } else {
     tokens = await collectionToken.find().toArray()
-    console.info("new quote broadcast, target count:", tokens.count())
+    console.info("new quote broadcast, target count:", tokens.length)
   }
 
   if (!expoToken.length) {
@@ -152,6 +152,9 @@ const pushQuoteNotifications = async (
           }
         }
       } catch (error) {
+        console.error('Send push error', error)
+        // await collectionToken.deleteOne({ token: expoToken })
+        // console.log("Deleting unmatched token")
         console.error(error)
       }
     }
