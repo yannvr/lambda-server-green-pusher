@@ -63,8 +63,8 @@ const pushQuoteNotifications = async (
       sound: "default",
       body: quote,
       data: {
-        quote
-      }
+        quote,
+      },
       // body: '"Ghost has been a truly game-changing product for me. Unlike many other publishing platforms, Ghost supports all components of running a successful online publication, from technical SEO to a surprisingly clean editing interface."',
     })
   }
@@ -152,7 +152,7 @@ const pushQuoteNotifications = async (
           }
         }
       } catch (error) {
-        console.error('Send push error', error)
+        console.error("Send push error", error)
         // await collectionToken.deleteOne({ token: expoToken })
         // console.log("Deleting unmatched token")
         console.error(error)
@@ -172,6 +172,11 @@ const getQuote = () =>
   )
 
 module.exports = async (req, res) => {
-  await init()
-  await getQuote()
+  if (req.headers.cypress == process.env.secret) {
+    await init()
+    await getQuote()
+    res.send(200)
+  } else {
+    res.send(403)
+  }
 }
