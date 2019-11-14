@@ -16,18 +16,30 @@ const init = async () => {
 
 // Create a new Expo SDK client
 
-const pushQuoteNotifications = async (
-  quote = "quote not found",
-  expoToken = ["ExponentPushToken[stYrctEOfIWPJar7faEdG0]"]
-) => {
+let pushToMeOnly = false
+
+const pushQuoteNotifications = async (quote = "quote not found") => {
   let expo = new Expo()
   let tokens
 
-  if (process.env.TEST_BROADCAST) {
+  console.log("push to me only..")
+  if (pushToMeOnly) {
     console.info("no broadcast, target me only")
     tokens = [
       {
-        token: "ExponentPushToken[stYrctEOfIWPJar7faEdG0]",
+        token: "ExponentPushToken[IKpQ7PNo_7IugJN3BNZMru]", // Test
+        deviceName: "Yann’s phone",
+      },
+      {
+        token: "ExponentPushToken[4wPgRXAc1K1M0kyaZCkAz3]", // dev
+        deviceName: "Yann’s phone",
+      },
+      {
+        token: "ExponentPushToken[stYrctEOfIWPJar7faEdG0]", // dev
+        deviceName: "Yann’s phone",
+      },
+      {
+        token: "ExponentPushToken[wH3CEjM-VZeIVere5dPrk-]", // dev
         deviceName: "Yann’s phone",
       },
     ]
@@ -36,7 +48,7 @@ const pushQuoteNotifications = async (
     console.info("new quote broadcast, target count:", tokens.length)
   }
 
-  if (!expoToken.length) {
+  if (!tokens.length) {
     console.log("no recipients")
     return
   }
@@ -53,7 +65,7 @@ const pushQuoteNotifications = async (
     // Check that all your push tokens appear to be valid Expo push tokens
     if (!Expo.isExpoPushToken(pushToken)) {
       console.error(`Push token ${pushToken} is not a valid Expo push token`)
-      await collectionToken.deleteOne({ token: expoToken })
+      // await collectionToken.deleteOne({ token: expoToken })
       continue
     }
 
@@ -65,7 +77,6 @@ const pushQuoteNotifications = async (
       data: {
         quote,
       },
-      // body: '"Ghost has been a truly game-changing product for me. Unlike many other publishing platforms, Ghost supports all components of running a successful online publication, from technical SEO to a surprisingly clean editing interface."',
     })
   }
 
@@ -82,7 +93,9 @@ const pushQuoteNotifications = async (
     // time, which nicely spreads the load out over time:
     for (let chunk of chunks) {
       try {
+        console.log("SEND PUSH NOTIF")
         let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
+        console.log("TICKET", ticketChunk)
         console.log(ticketChunk)
         tickets.push(...ticketChunk)
         // NOTE: If a ticket contains an error code in ticket.details.error, you
@@ -161,7 +174,7 @@ const pushQuoteNotifications = async (
   })()
 }
 
-const getQuote = () =>
+const pushQuote = () =>
   axios(APIgreenHabitPageLimit1OrderRandomFieldsSummary).then(
     async response => {
       const item = response.data.items[0]
@@ -172,9 +185,10 @@ const getQuote = () =>
   )
 
 module.exports = async (req, res) => {
+  pushToMeOnly = req.headers.meonly == 1
   if (req.headers.cypress == process.env.secret) {
     await init()
-    await getQuote()
+    await pushQuote()
     res.send(200)
   } else {
     res.send(403)
