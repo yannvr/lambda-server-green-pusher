@@ -3,8 +3,9 @@ const { Expo } = require("expo-server-sdk")
 const { connectToDatabase } = require("../mongo/db.js")
 
 const axios = require("axios")
-const APIgreenHabitPageLimit1OrderRandomFieldsSummary =
-  "https://greenlife.cloud/api/v2/pages/?format=json&type=greenhabits.GreenHabitPage&limit=1&order=random&fields=summary"
+// const APIgreenHabitPageLimit1OrderRandomFieldsSummary = "https://greenlife.cloud/api/v2/pages/?format=json&type=greenhabits.GreenHabitPage&limit=1&order=random&fields=summary,source,body"
+const APIgreenHabitPageLimit1OrderRandomFieldsSummary = "https://greenlife.cloud/api/v2/pages/?format=json&type=greenhabits.GreenHabitPage&limit=1&order=random&fields=summary,source,links"
+
 
 let db
 let collectionToken
@@ -18,7 +19,7 @@ const init = async () => {
 
 let pushToMeOnly = false
 
-const pushQuoteNotifications = async (quote = "quote not found") => {
+const pushQuoteNotifications = async quote => {
   let expo = new Expo()
   let tokens
 
@@ -40,6 +41,10 @@ const pushQuoteNotifications = async (quote = "quote not found") => {
       },
       {
         token: "ExponentPushToken[wH3CEjM-VZeIVere5dPrk-]", // dev
+        deviceName: "Yann’s phone",
+      },
+      {
+        token: "ExponentPushToken[YV6f_WJUVsGZsNQFV7Uq0D]", // dev
         deviceName: "Yann’s phone",
       },
     ]
@@ -72,8 +77,9 @@ const pushQuoteNotifications = async (quote = "quote not found") => {
     // Construct a message (see https://docs.expo.io/versions/latest/guides/push-notifications.html)
     messages.push({
       to: pushToken,
-      sound: "default",
-      body: quote,
+      // On Kris explicit request
+      sound: null,
+      body: quote.summary,
       data: {
         quote,
       },
@@ -178,9 +184,9 @@ const pushQuote = () =>
   axios(APIgreenHabitPageLimit1OrderRandomFieldsSummary).then(
     async response => {
       const item = response.data.items[0]
-      const quote = item.summary
-      console.log("quote", quote || `wrong entry for ${item.title}`)
-      await pushQuoteNotifications(quote)
+      console.log("quote:", item)
+      item.summary = item.summary || item.title
+      await pushQuoteNotifications(item)
     }
   )
 
