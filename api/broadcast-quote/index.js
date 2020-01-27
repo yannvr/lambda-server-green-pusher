@@ -3,7 +3,6 @@ const { Expo } = require("expo-server-sdk")
 const { connectToDatabase } = require("../mongo/db.js")
 
 const axios = require("axios")
-// const APIgreenHabitPageLimit1OrderRandomFieldsSummary = "https://greenlife.cloud/api/v2/pages/?format=json&type=greenhabits.GreenHabitPage&limit=1&order=random&fields=summary,source,body"
 const APIgreenHabitPageLimit1OrderRandomFieldsSummary = "https://greenlife.cloud/api/v2/pages/?format=json&type=greenhabits.GreenHabitPage&limit=1&order=random&fields=summary,source,links"
 
 
@@ -23,12 +22,15 @@ const pushQuoteNotifications = async quote => {
   let expo = new Expo()
   let tokens
 
-  console.log("push to me only..")
   if (pushToMeOnly) {
     console.info("no broadcast, target me only")
     tokens = [
       {
         token: "ExponentPushToken[IKpQ7PNo_7IugJN3BNZMru]", // Test
+        deviceName: "Yann’s phone",
+      },
+      {
+        token: "ExponentPushToken[0rtuv_NOLMdBmIVpfbIyMG]", // Test
         deviceName: "Yann’s phone",
       },
       {
