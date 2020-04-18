@@ -8,6 +8,9 @@ module.exports = async (req, res) => {
     console.log("userExpoToken", userExpoToken)
     console.log("deviceName", deviceName)
 
+    if(!userExpoToken) console.error("missing userExpoToken!")
+    if(!deviceName) console.warn("missing device name..")
+
     const isTokenRegistered = await collectionToken.findOne({
       token: userExpoToken,
     })

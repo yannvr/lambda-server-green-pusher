@@ -3,8 +3,7 @@ const { Expo } = require("expo-server-sdk")
 const { connectToDatabase } = require("../mongo/db.js")
 
 const axios = require("axios")
-const APIgreenHabitPageLimit1OrderRandomFieldsSummary = "https://greenlife.cloud/api/v2/pages/?format=json&type=greenhabits.GreenHabitPage&limit=1&order=random&fields=summary,source,links"
-
+const APIgreenHabitPageLimit1OrderRandomFieldsSummary = "https://greenlife.cloud/api/v2/pages/?format=json&type=greenhabits.GreenHabitPage&limit=1&order=random&fields=title,source,links"
 
 let db
 let collectionToken
@@ -31,7 +30,7 @@ const pushQuoteNotifications = async quote => {
       },
       {
         token: "ExponentPushToken[0rtuv_NOLMdBmIVpfbIyMG]", // Test
-        deviceName: "Yann’s phone",
+        deviceName: "Yann’s Z3 phone",
       },
       {
         token: "ExponentPushToken[4wPgRXAc1K1M0kyaZCkAz3]", // dev
@@ -156,7 +155,7 @@ const pushQuoteNotifications = async quote => {
             continue
           } else if (receipt.status === "error") {
             console.error(
-              `There was an error sending a notification: ${receipt.message}`
+              `There was an error sending a notification: ${receipt.message}`,
             )
             if (receipt.details && receipt.details.error) {
               // Is the user expo token not matched? Then delete it
@@ -183,22 +182,34 @@ const pushQuoteNotifications = async quote => {
 }
 
 const pushQuote = () =>
-  axios(APIgreenHabitPageLimit1OrderRandomFieldsSummary).then(
-    async response => {
-      const item = response.data.items[0]
-      console.log("quote:", item)
-      item.summary = item.summary || item.title
-      await pushQuoteNotifications(item)
-    }
-  )
+  axios(APIgreenHabitPageLimit1OrderRandomFieldsSummary)
+    .then(
+      async response => {
+        const item = response.data.items[0]
+        console.log("quote:", item)
+        item.summary = item.summary || item.title
+        await pushQuoteNotifications(item)
+      },
+    )
+    .catch(e => {
+      console.error("failed to catch quotes", e)
+      throw Error(e)
+    })
 
 module.exports = async (req, res) => {
   pushToMeOnly = req.headers.meonly == 1
-  if (req.headers.cypress == process.env.secret) {
-    await init()
-    await pushQuote()
-    res.send(200)
-  } else {
-    res.send(403)
+  try {
+    if (req.headers.cypress == process.env.secret) {
+      await init()
+      await pushQuote()
+      res.send(200)
+    } else {
+      res.send(403)
+    }
+  }
+  catch (e) {
+    console.log("ERROR: ", e)
+    // const { status, statusText } = e.response
+    res.status(400).send(`error: ${e}`)
   }
 }
