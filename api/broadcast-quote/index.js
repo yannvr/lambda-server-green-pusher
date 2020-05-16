@@ -3,7 +3,8 @@ const { Expo } = require("expo-server-sdk")
 const { connectToDatabase } = require("../mongo/db.js")
 
 const axios = require("axios")
-const APIgreenHabitPageLimit1OrderRandomFieldsSummary = "https://greenlife.cloud/api/v2/pages/?format=json&type=greenhabits.GreenHabitPage&limit=1&order=random&fields=title,source,links"
+const APIgreenHabitPageLimit1OrderRandomFieldsSummary =
+  "https://greenlife.cloud/api/v2/pages/?format=json&type=greenhabits.GreenHabitPage&limit=1&order=random&fields=title,source,links"
 
 let db
 let collectionToken
@@ -25,29 +26,33 @@ const pushQuoteNotifications = async quote => {
     console.info("no broadcast, target me only")
     tokens = [
       {
-        token: "ExponentPushToken[IKpQ7PNo_7IugJN3BNZMru]", // Test
+        token: "ExponentPushToken[_hTnKzD0rujP_HO_LmEkSy]", // Test
         deviceName: "Yann’s phone",
       },
-      {
-        token: "ExponentPushToken[0rtuv_NOLMdBmIVpfbIyMG]", // Test
-        deviceName: "Yann’s Z3 phone",
-      },
-      {
-        token: "ExponentPushToken[4wPgRXAc1K1M0kyaZCkAz3]", // dev
-        deviceName: "Yann’s phone",
-      },
-      {
-        token: "ExponentPushToken[stYrctEOfIWPJar7faEdG0]", // dev
-        deviceName: "Yann’s phone",
-      },
-      {
-        token: "ExponentPushToken[wH3CEjM-VZeIVere5dPrk-]", // dev
-        deviceName: "Yann’s phone",
-      },
-      {
-        token: "ExponentPushToken[YV6f_WJUVsGZsNQFV7Uq0D]", // dev
-        deviceName: "Yann’s phone",
-      },
+      // {
+      //   token: "ExponentPushToken[IKpQ7PNo_7IugJN3BNZMru]", // Test
+      //   deviceName: "Yann’s phone",
+      // },
+      // {
+      //   token: "ExponentPushToken[0rtuv_NOLMdBmIVpfbIyMG]", // Test
+      //   deviceName: "Yann’s Z3 phone",
+      // },
+      // {
+      //   token: "ExponentPushToken[4wPgRXAc1K1M0kyaZCkAz3]", // dev
+      //   deviceName: "Yann’s phone",
+      // },
+      // {
+      //   token: "ExponentPushToken[stYrctEOfIWPJar7faEdG0]", // dev
+      //   deviceName: "Yann’s phone",
+      // },
+      // {
+      //   token: "ExponentPushToken[wH3CEjM-VZeIVere5dPrk-]", // dev
+      //   deviceName: "Yann’s phone",
+      // },
+      // {
+      //   token: "ExponentPushToken[YV6f_WJUVsGZsNQFV7Uq0D]", // dev
+      //   deviceName: "Yann’s phone",
+      // },
     ]
   } else {
     tokens = await collectionToken.find().toArray()
