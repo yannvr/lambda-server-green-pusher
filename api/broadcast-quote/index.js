@@ -25,34 +25,36 @@ const pushQuoteNotifications = async quote => {
   if (pushToMeOnly) {
     console.info("no broadcast, target me only")
     tokens = [
+      // {
+      //   token: "ExponentPushToken[_hTnKzD0rujP_HO_LmEkSy]", // Test
+      //   deviceName: "Yann’s phone",
+      // },
       {
-        token: "ExponentPushToken[_hTnKzD0rujP_HO_LmEkSy]", // Test
+        token: "ExponentPushToken[wYDTQfEKh3eIm6jxQGctvR]", // Test
         deviceName: "Yann’s phone",
       },
-      // {
-      //   token: "ExponentPushToken[IKpQ7PNo_7IugJN3BNZMru]", // Test
-      //   deviceName: "Yann’s phone",
-      // },
-      // {
-      //   token: "ExponentPushToken[0rtuv_NOLMdBmIVpfbIyMG]", // Test
-      //   deviceName: "Yann’s Z3 phone",
-      // },
-      // {
-      //   token: "ExponentPushToken[4wPgRXAc1K1M0kyaZCkAz3]", // dev
-      //   deviceName: "Yann’s phone",
-      // },
-      // {
-      //   token: "ExponentPushToken[stYrctEOfIWPJar7faEdG0]", // dev
-      //   deviceName: "Yann’s phone",
-      // },
-      // {
-      //   token: "ExponentPushToken[wH3CEjM-VZeIVere5dPrk-]", // dev
-      //   deviceName: "Yann’s phone",
-      // },
-      // {
-      //   token: "ExponentPushToken[YV6f_WJUVsGZsNQFV7Uq0D]", // dev
-      //   deviceName: "Yann’s phone",
-      // },
+      /*
+            {
+              token: "ExponentPushToken[0rtuv_NOLMdBmIVpfbIyMG]", // Test
+              deviceName: "Yann’s Z3 phone",
+            },
+            {
+              token: "ExponentPushToken[4wPgRXAc1K1M0kyaZCkAz3]", // dev
+              deviceName: "Yann’s phone",
+            },
+            {
+              token: "ExponentPushToken[stYrctEOfIWPJar7faEdG0]", // dev
+              deviceName: "Yann’s phone",
+            },
+            {
+              token: "ExponentPushToken[wH3CEjM-VZeIVere5dPrk-]", // dev
+              deviceName: "Yann’s phone",
+            },
+            {
+              token: "ExponentPushToken[YV6f_WJUVsGZsNQFV7Uq0D]", // dev
+              deviceName: "Yann’s phone",
+            },
+      */
     ]
   } else {
     tokens = await collectionToken.find().toArray()
@@ -85,7 +87,7 @@ const pushQuoteNotifications = async quote => {
       to: pushToken,
       // On Kris explicit request
       sound: null,
-      body: quote.summary,
+      body: quote.title,
       data: {
         quote,
       },
@@ -192,7 +194,6 @@ const pushQuote = () =>
       async response => {
         const item = response.data.items[0]
         console.log("quote:", item)
-        item.summary = item.summary || item.title
         await pushQuoteNotifications(item)
       },
     )
