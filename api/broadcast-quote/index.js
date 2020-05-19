@@ -30,8 +30,8 @@ const pushQuoteNotifications = async quote => {
       //   deviceName: "Yann’s phone",
       // },
       {
-        token: "ExponentPushToken[wYDTQfEKh3eIm6jxQGctvR]", // Test
-        deviceName: "Yann’s phone",
+        token: "ExponentPushToken[1hqeFFEdRn_9clAEQqP7se]", // Test
+        deviceName: "Alana's phone",
       },
       /*
             {

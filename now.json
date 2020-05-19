@@ -1,5 +1,4 @@
 {
-    "name": "greenlife-quote-pusher",
     "version": 2,
     "alias": "gl-push",
     "env": {
