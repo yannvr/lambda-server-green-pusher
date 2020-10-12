@@ -1,6 +1,14 @@
 require("dotenv").config()
 const { Expo } = require("expo-server-sdk")
 const { connectToDatabase } = require("../mongo/db.js")
+const logdna  = require("@logdna/logger")
+
+const options = {
+  app: "GreenLife",
+  level: 'debug', // set a default for when level is not provided in function calls
+}
+
+const logger = logdna.createLogger("fa8e7820260fe31bce4bca47e1add5f6", options)
 
 const axios = require("axios")
 const APIgreenHabitPageLimit1OrderRandomFieldsSummary =
@@ -29,15 +37,23 @@ const pushQuoteNotifications = async quote => {
       //   token: "ExponentPushToken[_hTnKzD0rujP_HO_LmEkSy]", // Test
       //   deviceName: "Yann’s phone",
       // },
+      // {
+      //   token: "ExponentPushToken[1hqeFFEdRn_9clAEQqP7se]", // Test
+      //   deviceName: "Alana's phone",
+      // },
+      // {
+      //   token: "ExponentPushToken[rMjPTOOW8H4qUciW__XS0L]", // Test Mike's phonecj
+      //   deviceName: "Mike Porter’s iPhone",
+      // },
       {
-        token: "ExponentPushToken[1hqeFFEdRn_9clAEQqP7se]", // Test
-        deviceName: "Alana's phone",
+        token: "ExponentPushToken[71ZFj8OfymGL5AvooGKz61]", // Test GL Xperia M2
+        deviceName: "Xperia M2",
       },
-      /*
             {
               token: "ExponentPushToken[0rtuv_NOLMdBmIVpfbIyMG]", // Test
               deviceName: "Yann’s Z3 phone",
             },
+      /*
             {
               token: "ExponentPushToken[4wPgRXAc1K1M0kyaZCkAz3]", // dev
               deviceName: "Yann’s phone",
@@ -62,7 +78,7 @@ const pushQuoteNotifications = async quote => {
   }
 
   if (!tokens.length) {
-    console.log("no recipients")
+    logger.log("no recipients")
     return
   }
 
@@ -73,7 +89,7 @@ const pushQuoteNotifications = async quote => {
   for (let userTokens of tokens) {
     const pushToken = userTokens.token
 
-    console.log("GL pushToken target:", pushToken)
+    logger.log(`GL pushToken target: ${pushToken}`)
 
     // Check that all your push tokens appear to be valid Expo push tokens
     if (!Expo.isExpoPushToken(pushToken)) {
@@ -107,10 +123,9 @@ const pushQuoteNotifications = async quote => {
     // time, which nicely spreads the load out over time:
     for (let chunk of chunks) {
       try {
-        console.log("SEND PUSH NOTIF")
+        logger.log("SEND PUSH NOTIF")
         let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
-        console.log("TICKET", ticketChunk)
-        console.log(ticketChunk)
+        logger.log(`TICKET: ${ticketChunk}`)
         tickets.push(...ticketChunk)
         // NOTE: If a ticket contains an error code in ticket.details.error, you
         // must handle it appropriately. The error codes are listed in the Expo
@@ -161,28 +176,29 @@ const pushQuoteNotifications = async quote => {
           if (receipt.status === "ok") {
             continue
           } else if (receipt.status === "error") {
-            console.error(
-              `There was an error sending a notification: ${receipt.message}`,
-            )
+            console.error(`There was an error sending a notification: ${receipt.message}`)
+            logger.error(`There was an error sending a notification: ${receipt.message}`)
             if (receipt.details && receipt.details.error) {
               // Is the user expo token not matched? Then delete it
               if (receipt.details.error === "DeviceNotRegistered") {
                 await collectionToken.deleteOne({ token: expoToken })
-                console.log("Deleting unmatched token")
+                logger.log("Deleting unmatched token")
               }
 
               // The error codes are listed in the Expo documentation:
               // https://docs.expo.io/versions/latest/guides/push-notifications#response-format
               // You must handle the errors appropriately.
               console.error(`The error code is ${receipt.details.error}`)
+              logger.error(`The error code is ${receipt.details.error}`)
             }
           }
         }
       } catch (error) {
         console.error("Send push error", error)
+        logger.error(`Send push error ${error}`)
         // await collectionToken.deleteOne({ token: expoToken })
-        // console.log("Deleting unmatched token")
-        console.error(error)
+        // logger.log("Deleting unmatched token")
+        // console.error(error)
       }
     }
   })()
@@ -193,12 +209,13 @@ const pushQuote = () =>
     .then(
       async response => {
         const item = response.data.items[0]
-        console.log("quote:", item)
+        logger.log(`quote id: ${item.id}`)
         await pushQuoteNotifications(item)
       },
     )
     .catch(e => {
       console.error("failed to catch quotes", e)
+      logger.error(`failed to catch quotes: ${e}`)
       throw Error(e)
     })
 
@@ -212,9 +229,8 @@ module.exports = async (req, res) => {
     } else {
       res.send(403)
     }
-  }
-  catch (e) {
-    console.log("ERROR: ", e)
+  } catch (e) {
+    logger.error(`PUSH INIT ERROR:  ${e}`)
     // const { status, statusText } = e.response
     res.status(400).send(`error: ${e}`)
   }
