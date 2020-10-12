@@ -1,6 +1,5 @@
 {
     "version": 2,
-    "alias": "gl-push",
     "env": {
         "MONGODB_URI": "@ca-mongodb-api",
         "secret": "42"
