@@ -32,6 +32,7 @@ const pushQuoteNotifications = async quote => {
 
   if (pushToMeOnly) {
     console.info("no broadcast, target me only")
+    logger.debug("no broadcast, target me only")
     tokens = [
       // {
       //   token: "ExponentPushToken[_hTnKzD0rujP_HO_LmEkSy]", // Test
@@ -78,7 +79,7 @@ const pushQuoteNotifications = async quote => {
   }
 
   if (!tokens.length) {
-    logger.log("no recipients")
+    logger.debug("no recipients")
     return
   }
 
@@ -89,7 +90,7 @@ const pushQuoteNotifications = async quote => {
   for (let userTokens of tokens) {
     const pushToken = userTokens.token
 
-    logger.log(`GL pushToken target: ${pushToken}`)
+    logger.debug(`GL pushToken target: ${pushToken}`)
 
     // Check that all your push tokens appear to be valid Expo push tokens
     if (!Expo.isExpoPushToken(pushToken)) {
@@ -123,9 +124,9 @@ const pushQuoteNotifications = async quote => {
     // time, which nicely spreads the load out over time:
     for (let chunk of chunks) {
       try {
-        logger.log("SEND PUSH NOTIF")
+        logger.debug("SEND PUSH NOTIF")
         let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
-        logger.log(`TICKET: ${ticketChunk}`)
+        logger.debug(`TICKET: ${ticketChunk}`)
         tickets.push(...ticketChunk)
         // NOTE: If a ticket contains an error code in ticket.details.error, you
         // must handle it appropriately. The error codes are listed in the Expo
@@ -182,7 +183,7 @@ const pushQuoteNotifications = async quote => {
               // Is the user expo token not matched? Then delete it
               if (receipt.details.error === "DeviceNotRegistered") {
                 await collectionToken.deleteOne({ token: expoToken })
-                logger.log("Deleting unmatched token")
+                logger.debug("Deleting unmatched token")
               }
 
               // The error codes are listed in the Expo documentation:
@@ -197,19 +198,19 @@ const pushQuoteNotifications = async quote => {
         console.error("Send push error", error)
         logger.error(`Send push error ${error}`)
         // await collectionToken.deleteOne({ token: expoToken })
-        // logger.log("Deleting unmatched token")
+        // logger.debug("Deleting unmatched token")
         // console.error(error)
       }
     }
   })()
 }
 
-const pushQuote = () =>
+const pushQuote = async () =>
   axios(APIgreenHabitPageLimit1OrderRandomFieldsSummary)
     .then(
       async response => {
         const item = response.data.items[0]
-        logger.log(`quote id: ${item.id}`)
+        logger.debug(`quote id: ${item.id}`)
         await pushQuoteNotifications(item)
       },
     )
@@ -223,8 +224,11 @@ module.exports = async (req, res) => {
   pushToMeOnly = req.headers.meonly == 1
   try {
     if (req.headers.cypress == process.env.secret) {
+      logger.info(`PUSHER: init`)
       await init()
+      logger.info(`PUSHER: sending`)
       await pushQuote()
+      logger.info(`PUSHER: OK`)
       res.send('OK')
     } else {
       res.send(403)
