@@ -225,7 +225,7 @@ module.exports = async (req, res) => {
     if (req.headers.cypress == process.env.secret) {
       await init()
       await pushQuote()
-      res.send(200)
+      res.send('OK')
     } else {
       res.send(403)
     }

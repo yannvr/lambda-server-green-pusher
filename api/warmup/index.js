@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
   try {
     if (req.headers.cypress == process.env.secret) {
       await init()
-      res.send('Warmed up')
+      res.send('HOT')
     } else {
       res.send(403)
     }
