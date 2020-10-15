@@ -1,27 +1,30 @@
 #!/bin/sh
-date=`date "+%d-%m-%y%H:%M:%S"`
-echo "${date}: Pushing notif schedule" >> /var/log/cron.greenlife
+{
+    date=`date "+%d-%m-%y %H:%M:%S"`
+    echo "${date}: Pushing notif schedule"
 
-# Warm up function
-curl -H "cypress: 42" https://greenlife-quote-pusher.yannvr.now.sh/api/warmup
+    # Warm up function
+    ret=`curl -H "cypress: 42" https://greenlife-quote-pusher.yannvr.now.sh/api/warmup`
 
-if [ $? -ne 0 ] ; then
-    # Re execute lambda
-    echo "${date}: FAILURE warmup (RETRY)" >> /var/log/cron.greenlife
-    /bin/sh /home/ubuntu/GreenLife/send-test-broadcast.sh
-    exit
-fi
+    echo "Warm up ret: $ret"
 
-sleep 1
+    if [ $ret = "HOT" ] ; then
+        sleep 1
+        # Execute function (hopefully)
+        ret=`curl -H "cypress: 42" https://greenlife-quote-pusher.yannvr.now.sh/api/broadcast-quote`
+        echo "PUSH ret: ${ret}"
+        if [ $ret = "OK" ] ; then
+            echo "${date}: OK"
+        else
+            # Re execute lambda
+            echo "${date}: FAILURE broadcast (RETRY)"
+            /bin/sh /home/ubuntu/GreenLife/send-broadcast.sh
+        fi
+    else
+        # Re execute lambda
+        echo "${date}: FAILURE warmup (RETRY)" >> /var/log/cron.greenlife
+        /bin/sh /home/ubuntu/GreenLife/send-broadcast.sh
 
-# Execute function (hopefully)
-curl -H "cypress: 42" https://greenlife-quote-pusher.yannvr.now.sh/api/broadcast-quote
+    fi
 
-if [ $? -ne 0 ] ; then
-    # Re execute lambda
-    echo "${date}: FAILURE broadcast (RETRY)" >> /var/log/cron.greenlife
-    /bin/sh /home/ubuntu/GreenLife/send-test-broadcast.sh
-    exit
-fi
-
-echo "${date}: OK" >> /var/log/cron.greenlife
+} >> /var/log/cron.greenlife
