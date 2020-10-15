@@ -1,14 +1,6 @@
 require("dotenv").config()
 const { Expo } = require("expo-server-sdk")
 const { connectToDatabase } = require("../mongo/db.js")
-const logdna  = require("@logdna/logger")
-
-const options = {
-  app: "GreenLife",
-  level: 'debug', // set a default for when level is not provided in function calls
-}
-
-const logger = logdna.createLogger("fa8e7820260fe31bce4bca47e1add5f6", options)
 
 const axios = require("axios")
 const APIgreenHabitPageLimit1OrderRandomFieldsSummary =
@@ -32,7 +24,7 @@ const pushQuoteNotifications = async quote => {
 
   if (pushToMeOnly) {
     console.info("no broadcast, target me only")
-    logger.debug("no broadcast, target me only")
+    
     tokens = [
       // {
       //   token: "ExponentPushToken[_hTnKzD0rujP_HO_LmEkSy]", // Test
@@ -79,7 +71,7 @@ const pushQuoteNotifications = async quote => {
   }
 
   if (!tokens.length) {
-    logger.debug("no recipients")
+    
     return
   }
 
@@ -90,7 +82,7 @@ const pushQuoteNotifications = async quote => {
   for (let userTokens of tokens) {
     const pushToken = userTokens.token
 
-    logger.debug(`GL pushToken target: ${pushToken}`)
+    
 
     // Check that all your push tokens appear to be valid Expo push tokens
     if (!Expo.isExpoPushToken(pushToken)) {
@@ -124,9 +116,9 @@ const pushQuoteNotifications = async quote => {
     // time, which nicely spreads the load out over time:
     for (let chunk of chunks) {
       try {
-        logger.debug("SEND PUSH NOTIF")
+        
         let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
-        logger.debug(`TICKET: ${ticketChunk}`)
+        
         tickets.push(...ticketChunk)
         // NOTE: If a ticket contains an error code in ticket.details.error, you
         // must handle it appropriately. The error codes are listed in the Expo
@@ -178,27 +170,27 @@ const pushQuoteNotifications = async quote => {
             continue
           } else if (receipt.status === "error") {
             console.error(`There was an error sending a notification: ${receipt.message}`)
-            logger.error(`There was an error sending a notification: ${receipt.message}`)
+            
             if (receipt.details && receipt.details.error) {
               // Is the user expo token not matched? Then delete it
               if (receipt.details.error === "DeviceNotRegistered") {
                 await collectionToken.deleteOne({ token: expoToken })
-                logger.debug("Deleting unmatched token")
+                
               }
 
               // The error codes are listed in the Expo documentation:
               // https://docs.expo.io/versions/latest/guides/push-notifications#response-format
               // You must handle the errors appropriately.
               console.error(`The error code is ${receipt.details.error}`)
-              logger.error(`The error code is ${receipt.details.error}`)
+              
             }
           }
         }
       } catch (error) {
         console.error("Send push error", error)
-        logger.error(`Send push error ${error}`)
+        
         // await collectionToken.deleteOne({ token: expoToken })
-        // logger.debug("Deleting unmatched token")
+        // 
         // console.error(error)
       }
     }
@@ -210,13 +202,13 @@ const pushQuote = async () =>
     .then(
       async response => {
         const item = response.data.items[0]
-        logger.debug(`quote id: ${item.id}`)
+        
         await pushQuoteNotifications(item)
       },
     )
     .catch(e => {
       console.error("failed to catch quotes", e)
-      logger.error(`failed to catch quotes: ${e}`)
+      
       throw Error(e)
     })
 
@@ -224,17 +216,17 @@ module.exports = async (req, res) => {
   pushToMeOnly = req.headers.meonly == 1
   try {
     if (req.headers.cypress == process.env.secret) {
-      logger.info(`PUSHER: init`)
+      
       await init()
-      logger.info(`PUSHER: sending`)
+      
       await pushQuote()
-      logger.info(`PUSHER: OK`)
+      
       res.send('OK')
     } else {
       res.send(403)
     }
   } catch (e) {
-    logger.error(`PUSH INIT ERROR:  ${e}`)
+    
     // const { status, statusText } = e.response
     res.status(400).send(`error: ${e}`)
   }
