@@ -24,7 +24,7 @@ const pushQuoteNotifications = async quote => {
 
   if (pushToMeOnly) {
     console.info("no broadcast, target me only")
-    
+
     tokens = [
       // {
       //   token: "ExponentPushToken[_hTnKzD0rujP_HO_LmEkSy]", // Test
@@ -38,14 +38,18 @@ const pushQuoteNotifications = async quote => {
       //   token: "ExponentPushToken[rMjPTOOW8H4qUciW__XS0L]", // Test Mike's phonecj
       //   deviceName: "Mike Porter’s iPhone",
       // },
+      // {
+      //   token: "ExponentPushToken[1hqeFFEdRn_9clAEQqP7se]", // Test
+      //   deviceName: "Alana's phone",
+      // },
       {
         token: "ExponentPushToken[71ZFj8OfymGL5AvooGKz61]", // Test GL Xperia M2
         deviceName: "Xperia M2",
       },
-            {
-              token: "ExponentPushToken[0rtuv_NOLMdBmIVpfbIyMG]", // Test
-              deviceName: "Yann’s Z3 phone",
-            },
+      {
+        token: "ExponentPushToken[0rtuv_NOLMdBmIVpfbIyMG]", // Test
+        deviceName: "Yann’s Z3 phone",
+      },
       /*
             {
               token: "ExponentPushToken[4wPgRXAc1K1M0kyaZCkAz3]", // dev
@@ -67,11 +71,11 @@ const pushQuoteNotifications = async quote => {
     ]
   } else {
     tokens = await collectionToken.find().toArray()
-    console.info("new quote broadcast, target count:", tokens.length)
+    console.info(`new quote broadcast, target count: ${tokens.length}`)
   }
 
   if (!tokens.length) {
-    
+    console.log("no recipients")
     return
   }
 
@@ -82,7 +86,7 @@ const pushQuoteNotifications = async quote => {
   for (let userTokens of tokens) {
     const pushToken = userTokens.token
 
-    
+    console.log(`GL pushToken target: ${pushToken}`)
 
     // Check that all your push tokens appear to be valid Expo push tokens
     if (!Expo.isExpoPushToken(pushToken)) {
@@ -116,16 +120,16 @@ const pushQuoteNotifications = async quote => {
     // time, which nicely spreads the load out over time:
     for (let chunk of chunks) {
       try {
-        
+        console.log("SEND PUSH NOTIF")
         let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
-        
+        console.log(`TICKET: ${ticketChunk}`)
         tickets.push(...ticketChunk)
         // NOTE: If a ticket contains an error code in ticket.details.error, you
         // must handle it appropriately. The error codes are listed in the Expo
         // documentation:
         // https://docs.expo.io/versions/latest/guides/push-notifications#response-format
       } catch (error) {
-        console.error(error)
+        console.error(`PUSH NOTIF ERROR: ${error}`)
       }
     }
   })()
@@ -170,25 +174,23 @@ const pushQuoteNotifications = async quote => {
             continue
           } else if (receipt.status === "error") {
             console.error(`There was an error sending a notification: ${receipt.message}`)
-            
+
             if (receipt.details && receipt.details.error) {
               // Is the user expo token not matched? Then delete it
               if (receipt.details.error === "DeviceNotRegistered") {
                 await collectionToken.deleteOne({ token: expoToken })
-                
+
               }
 
               // The error codes are listed in the Expo documentation:
               // https://docs.expo.io/versions/latest/guides/push-notifications#response-format
               // You must handle the errors appropriately.
               console.error(`The error code is ${receipt.details.error}`)
-              
             }
           }
         }
       } catch (error) {
         console.error("Send push error", error)
-        
         // await collectionToken.deleteOne({ token: expoToken })
         // 
         // console.error(error)
@@ -197,36 +199,34 @@ const pushQuoteNotifications = async quote => {
   })()
 }
 
-const pushQuote = async () =>
-  axios(APIgreenHabitPageLimit1OrderRandomFieldsSummary)
-    .then(
-      async response => {
-        const item = response.data.items[0]
-        
-        await pushQuoteNotifications(item)
-      },
-    )
+const pushQuote = async () => {
+  console.log("fetching quote")
+  const quoteItem = await axios(APIgreenHabitPageLimit1OrderRandomFieldsSummary)
+    .then(response => response.data.items[0])
     .catch(e => {
       console.error("failed to catch quotes", e)
-      
+      console.error(`failed to catch quotes: ${e}`)
       throw Error(e)
     })
+  console.log(`fetched quote : ${quoteItem.id}`)
+  await pushQuoteNotifications(quoteItem)
+}
 
 module.exports = async (req, res) => {
   pushToMeOnly = req.headers.meonly == 1
   try {
     if (req.headers.cypress == process.env.secret) {
-      
+      console.info(`PUSHER: init`)
       await init()
-      
+      console.info(`PUSHER: sending`)
       await pushQuote()
-      
-      res.send('OK')
+      console.info(`PUSHER: OK`)
+      res.send("OK")
     } else {
       res.send(403)
     }
   } catch (e) {
-    
+    console.error(`PUSH INIT ERROR:  ${e}`)
     // const { status, statusText } = e.response
     res.status(400).send(`error: ${e}`)
   }
