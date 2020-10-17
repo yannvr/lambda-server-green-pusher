@@ -1,8 +1,8 @@
 require("dotenv").config()
 const { Expo } = require("expo-server-sdk")
 const { connectToDatabase } = require("../mongo/db.js")
-
 const axios = require("axios")
+
 const APIgreenHabitPageLimit1OrderRandomFieldsSummary =
   "https://greenlife.cloud/api/v2/pages/?format=json&type=greenhabits.GreenHabitPage&limit=1&order=random&fields=title,source,links"
 
@@ -13,8 +13,6 @@ const init = async () => {
   db = await connectToDatabase(process.env.MONGODB_URI)
   collectionToken = db.collection("expotoken")
 }
-
-// Create a new Expo SDK client
 
 let pushToMeOnly = false
 
@@ -45,11 +43,25 @@ const pushQuoteNotifications = async quote => {
       {
         token: "ExponentPushToken[71ZFj8OfymGL5AvooGKz61]", // Test GL Xperia M2
         deviceName: "Xperia M2",
-      },
-      {
+      }, {
         token: "ExponentPushToken[0rtuv_NOLMdBmIVpfbIyMG]", // Test
         deviceName: "Yann’s Z3 phone",
       },
+      {
+        token: "ExponentPushToken[b3q7PECiTN02BhyeXb3Am3]", // Test
+        deviceName: "Yann’s Z3 phone",
+      }, {
+        token: "ExponentPushToken[IKpQ7PNo_7IugJN3BNZMru]", // Test
+        deviceName: "Yann’s phone",
+      },
+      {
+        token: "ExponentPushToken[mJTxZhLOXQP1MSjmqUAFAy]", // Test
+        deviceName: "Yann’s phone",
+      }, {
+        token: "ExponentPushToken[mJTQwe23ewe1MSjmqUAFAy]", // Test
+        deviceName: "Yann’s phone",
+      },
+
       /*
             {
               token: "ExponentPushToken[4wPgRXAc1K1M0kyaZCkAz3]", // dev
@@ -70,8 +82,9 @@ const pushQuoteNotifications = async quote => {
       */
     ]
   } else {
+    console.info("broadcast to all")
     tokens = await collectionToken.find().toArray()
-    console.info(`new quote broadcast, target count: ${tokens.length}`)
+    console.info("new quote broadcast, target count", tokens.length)
   }
 
   if (!tokens.length) {
@@ -85,8 +98,6 @@ const pushQuoteNotifications = async quote => {
   // for (let userTokens of tokens) {
   for (let userTokens of tokens) {
     const pushToken = userTokens.token
-
-    console.log(`GL pushToken target: ${pushToken}`)
 
     // Check that all your push tokens appear to be valid Expo push tokens
     if (!Expo.isExpoPushToken(pushToken)) {
@@ -114,25 +125,26 @@ const pushQuoteNotifications = async quote => {
   // compressed).
   let chunks = expo.chunkPushNotifications(messages)
   let tickets = []
-  ;(async () => {
+
+  const sendChunkPushNotifications = async () => {
     // Send the chunks to the Expo push notification service. There are
     // different strategies you could use. A simple one is to send one chunk at a
     // time, which nicely spreads the load out over time:
     for (let chunk of chunks) {
       try {
-        console.log("SEND PUSH NOTIF")
-        let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
-        console.log(`TICKET: ${ticketChunk}`)
-        tickets.push(...ticketChunk)
+        tickets = await expo.sendPushNotificationsAsync(chunk)
+        console.log("TICKETS:", tickets)
         // NOTE: If a ticket contains an error code in ticket.details.error, you
         // must handle it appropriately. The error codes are listed in the Expo
         // documentation:
         // https://docs.expo.io/versions/latest/guides/push-notifications#response-format
       } catch (error) {
-        console.error(`PUSH NOTIF ERROR: ${error}`)
+        console.error("PUSH NOTIF ERROR", error)
       }
     }
-  })()
+  }
+
+  await sendChunkPushNotifications()
 
   // Later, after the Expo push notification service has delivered the
   // notifications to Apple or Google (usually quickly, but allow the the service
@@ -150,65 +162,49 @@ const pushQuoteNotifications = async quote => {
   // your app. Expo does not control this policy and sends back the feedback from
   // Apple and Google so you can handle it appropriately.
   let receiptIds = []
-  for (let ticket of tickets) {
+  for (let i = 0; i < tickets.length; i++) {
+    let ticket = tickets[i]
     // NOTE: Not all tickets have IDs; for example, tickets for notifications
     // that could not be enqueued will have error information and no receipt ID.
     if (ticket.id) {
       receiptIds.push(ticket.id)
+    } else {
+      // Is the user expo token not matched? Then delete it
+      if (ticket.details && ticket.details.error && ticket.details.error === "DeviceNotRegistered") {
+        console.debug("delete invalid token", tokens[i])
+        await collectionToken.deleteOne({ token: tokens[i] })
+      }
     }
   }
 
   let receiptIdChunks = expo.chunkPushNotificationReceiptIds(receiptIds)
-  ;(async () => {
-    // Like sending notifications, there are different strategies you could use
-    // to retrieve batches of receipts from the Expo service.
+  const collectReceipts = async () => {
     for (let chunk of receiptIdChunks) {
       try {
         let receipts = await expo.getPushNotificationReceiptsAsync(chunk)
-        console.log("receipts:", receipts)
+        console.log("RECEIPTS:", receipts)
 
-        // The receipts specify whether Apple or Google successfully received the
-        // notification and information about an error, if one occurred.
-        for (let receipt of receipts) {
-          if (receipt.status === "ok") {
-            continue
-          } else if (receipt.status === "error") {
-            console.error(`There was an error sending a notification: ${receipt.message}`)
-
-            if (receipt.details && receipt.details.error) {
-              // Is the user expo token not matched? Then delete it
-              if (receipt.details.error === "DeviceNotRegistered") {
-                await collectionToken.deleteOne({ token: expoToken })
-
-              }
-
-              // The error codes are listed in the Expo documentation:
-              // https://docs.expo.io/versions/latest/guides/push-notifications#response-format
-              // You must handle the errors appropriately.
-              console.error(`The error code is ${receipt.details.error}`)
-            }
-          }
+        if (!receipts.pop) {
+          receipts = [receipts]
         }
+
+        const receiptErrors = receipts.filter(r => r.status === "error")
+        if (receiptErrors.length > 0) console.error("failed receipts", receiptErrors)
       } catch (error) {
-        console.error("Send push error", error)
-        // await collectionToken.deleteOne({ token: expoToken })
-        // 
-        // console.error(error)
+        console.error("collectReceipts error", error)
       }
     }
-  })()
+  }
+  await collectReceipts()
 }
 
 const pushQuote = async () => {
-  console.log("fetching quote")
   const quoteItem = await axios(APIgreenHabitPageLimit1OrderRandomFieldsSummary)
     .then(response => response.data.items[0])
     .catch(e => {
       console.error("failed to catch quotes", e)
-      console.error(`failed to catch quotes: ${e}`)
-      throw Error(e)
     })
-  console.log(`fetched quote : ${quoteItem.id}`)
+  console.log("fetched quote", quoteItem.id, quoteItem.title)
   await pushQuoteNotifications(quoteItem)
 }
 
@@ -216,9 +212,8 @@ module.exports = async (req, res) => {
   pushToMeOnly = req.headers.meonly == 1
   try {
     if (req.headers.cypress == process.env.secret) {
-      console.info(`PUSHER: init`)
+      console.info(`\n---------\nPUSHER: init ${new Date()}`)
       await init()
-      console.info(`PUSHER: sending`)
       await pushQuote()
       console.info(`PUSHER: OK`)
       res.send("OK")
@@ -226,8 +221,7 @@ module.exports = async (req, res) => {
       res.send(403)
     }
   } catch (e) {
-    console.error(`PUSH INIT ERROR:  ${e}`)
-    // const { status, statusText } = e.response
+    console.error('PUSH ERROR', e)
     res.status(400).send(`error: ${e}`)
   }
 }
