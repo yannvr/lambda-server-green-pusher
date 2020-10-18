@@ -57,9 +57,10 @@ const pushQuoteNotifications = async quote => {
       {
         token: "ExponentPushToken[mJTxZhLOXQP1MSjmqUAFAy]", // Test
         deviceName: "Yann’s phone",
-      }, {
-        token: "ExponentPushToken[mJTQwe23ewe1MSjmqUAFAy]", // Test
-        deviceName: "Yann’s phone",
+      },
+      {
+        token: "ExponentPushToken[9Rgm2tPcMPZRCHpPRJKQDe]", // Test
+        deviceName: "OPPO Find X2 Pro",
       },
 
       /*
@@ -95,9 +96,9 @@ const pushQuoteNotifications = async quote => {
   // Create the messages that you want to send to clients
   let messages = []
 
-  // for (let userTokens of tokens) {
   for (let userTokens of tokens) {
     const pushToken = userTokens.token
+    // console.log(`GL pushToken target: ${pushToken}`)
 
     // Check that all your push tokens appear to be valid Expo push tokens
     if (!Expo.isExpoPushToken(pushToken)) {
@@ -133,13 +134,12 @@ const pushQuoteNotifications = async quote => {
     for (let chunk of chunks) {
       try {
         tickets = await expo.sendPushNotificationsAsync(chunk)
-        console.log("TICKETS:", tickets)
         // NOTE: If a ticket contains an error code in ticket.details.error, you
         // must handle it appropriately. The error codes are listed in the Expo
         // documentation:
         // https://docs.expo.io/versions/latest/guides/push-notifications#response-format
       } catch (error) {
-        console.error("PUSH NOTIF ERROR", error)
+        console.error("sendChunkPushNotifications:", error)
       }
     }
   }
@@ -166,18 +166,19 @@ const pushQuoteNotifications = async quote => {
     let ticket = tickets[i]
     // NOTE: Not all tickets have IDs; for example, tickets for notifications
     // that could not be enqueued will have error information and no receipt ID.
-    if (ticket.id) {
+    // Is the user expo token not matched? Then delete it
+
+    if (ticket.details && ticket.details.error && ticket.details.error === "DeviceNotRegistered") {
+      console.debug("delete invalid token: ", tokens[i], ticket)
+      await collectionToken.deleteOne({ token: tokens[i] })
+    } else if (ticket.id && ticket.status === 'ok') {
       receiptIds.push(ticket.id)
-    } else {
-      // Is the user expo token not matched? Then delete it
-      if (ticket.details && ticket.details.error && ticket.details.error === "DeviceNotRegistered") {
-        console.debug("delete invalid token", tokens[i])
-        await collectionToken.deleteOne({ token: tokens[i] })
-      }
+      console.log("Ticket issued: ", tokens[i], ticket)
     }
   }
 
   let receiptIdChunks = expo.chunkPushNotificationReceiptIds(receiptIds)
+
   const collectReceipts = async () => {
     for (let chunk of receiptIdChunks) {
       try {
@@ -188,14 +189,36 @@ const pushQuoteNotifications = async quote => {
           receipts = [receipts]
         }
 
-        const receiptErrors = receipts.filter(r => r.status === "error")
-        if (receiptErrors.length > 0) console.error("failed receipts", receiptErrors)
+        // const receiptErrors = receipts.filter(r => r.status === "error")
+        // if (receiptErrors.length > 0) console.error("failed receipts", receiptErrors)
+        return receipts
       } catch (error) {
         console.error("collectReceipts error", error)
       }
     }
   }
-  await collectReceipts()
+
+  const receipts = await collectReceipts()
+
+  // Receipts failing should be same of tickets errors
+  // for (let i = 0; i < receipts.length; i++) {
+  //   let receipt = receipts[i]
+  //   console.log("receipt", receipt)
+  //   // NOTE: Not all tickets have IDs; for example, tickets for notifications
+  //   // that could not be enqueued will have error information and no receipt ID.
+  //   // Is the user expo token not matched? Then delete it
+  //
+  //   if (receipt.details && receipt.details.error && receipt.details.error === "DeviceNotRegistered") {
+  //     console.error("Receipt failed for token", tokens[i])
+  //     // Duplicate deletion (debug until I can see tickets are actually deleted)
+  //     console.debug("delete invalid token", tokens[i])
+  //     await collectionToken.deleteOne({ token: tokens[i] })
+  //   } else {
+  //     console.log(receipt)
+  //     console.log('-->')
+  //     console.log(tokens[i])
+  //   }
+  // }
 }
 
 const pushQuote = async () => {
@@ -204,7 +227,7 @@ const pushQuote = async () => {
     .catch(e => {
       console.error("failed to catch quotes", e)
     })
-  console.log("fetched quote", quoteItem.id, quoteItem.title)
+  console.log(`nudge ${quoteItem.id}: ${quoteItem.title}`)
   await pushQuoteNotifications(quoteItem)
 }
 
@@ -221,7 +244,7 @@ module.exports = async (req, res) => {
       res.send(403)
     }
   } catch (e) {
-    console.error('PUSH ERROR', e)
+    console.error("PUSH ERROR", e)
     res.status(400).send(`error: ${e}`)
   }
 }
